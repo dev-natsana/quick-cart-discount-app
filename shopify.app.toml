@@ -1,0 +1,16 @@
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration
+
+name = "quick-cart-discount"
+application_url = "https://quick-cart-discount.up.railway.app"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[access_scopes]
+scopes = "read_orders,read_products"
+
+[auth]
+redirect_urls = [
+  "https://quick-cart-discount.up.railway.app/auth/callback"
+]

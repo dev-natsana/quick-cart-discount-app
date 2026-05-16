@@ -1,0 +1,205 @@
+{% schema %}
+{
+  "name": "Quick Cart Discount",
+  "target": "section",
+  "enabled_on": {
+    "templates": ["*"]
+  },
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Enable discount input",
+      "default": true
+    }
+  ]
+}
+{% endschema %}
+
+{% if block.settings.enabled %}
+<div class="qcd-container" data-qcd-block>
+  <div class="qcd-toggle" data-qcd-toggle>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+      <line x1="7" y1="7" x2="7.01" y2="7"></line>
+    </svg>
+    <span class="qcd-label">Rabattcode</span>
+    <span class="qcd-active-code"></span>
+    <svg class="qcd-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </div>
+
+  <div class="qcd-content" style="display: none;">
+    <div class="qcd-form">
+      <input type="text" class="qcd-input" placeholder="Code eingeben" />
+      <button class="qcd-btn qcd-apply">Anwenden</button>
+    </div>
+    <div class="qcd-active" style="display: none;">
+      <div>
+        <strong class="qcd-code-text"></strong>
+        <span class="qcd-savings"></span>
+      </div>
+      <button class="qcd-btn qcd-remove">Entfernen</button>
+    </div>
+    <div class="qcd-msg" style="display: none;"></div>
+  </div>
+</div>
+
+<style>
+.qcd-container {
+  padding: 14px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  margin: 12px 0;
+}
+.qcd-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.qcd-toggle svg:first-child { color: #666; }
+.qcd-label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+}
+.qcd-active-code {
+  color: #16a34a;
+  font-weight: 600;
+  display: none;
+}
+.qcd-arrow { transition: transform 0.2s; }
+.qcd-container.open .qcd-arrow { transform: rotate(180deg); }
+.qcd-content { padding-top: 12px; }
+.qcd-form { display: flex; gap: 8px; }
+.qcd-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.qcd-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.qcd-apply {
+  background: #f3fe00;
+  color: #333;
+}
+.qcd-apply:hover { background: #e5f000; }
+.qcd-apply:disabled { opacity: 0.5; }
+.qcd-remove {
+  background: #fee;
+  color: #dc2626;
+}
+.qcd-active {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.qcd-code-text { font-size: 14px; }
+.qcd-savings {
+  display: block;
+  font-size: 13px;
+  color: #16a34a;
+}
+.qcd-msg {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.qcd-msg.error {
+  background: #fee;
+  color: #dc2626;
+}
+</style>
+
+<script>
+(function() {
+  const el = document.querySelector('[data-qcd-block]');
+  if (!el) return;
+
+  const toggle = el.querySelector('[data-qcd-toggle]');
+  const content = el.querySelector('.qcd-content');
+  const input = el.querySelector('.qcd-input');
+  const applyBtn = el.querySelector('.qcd-apply');
+  const removeBtn = el.querySelector('.qcd-remove');
+  const form = el.querySelector('.qcd-form');
+  const active = el.querySelector('.qcd-active');
+  const msg = el.querySelector('.qcd-msg');
+  const activeCodeEl = el.querySelector('.qcd-active-code');
+  const codeText = el.querySelector('.qcd-code-text');
+  const savings = el.querySelector('.qcd-savings');
+
+  toggle.addEventListener('click', () => {
+    const open = el.classList.toggle('open');
+    content.style.display = open ? 'block' : 'none';
+  });
+
+  applyBtn.addEventListener('click', () => {
+    const code = input.value.trim().toUpperCase();
+    if (!code) {
+      showMsg('Bitte Code eingeben', 'error');
+      return;
+    }
+    applyBtn.disabled = true;
+    applyBtn.textContent = 'Lädt...';
+    sessionStorage.setItem('ne_discount_code', code);
+    const url = window.location.pathname + window.location.search;
+    window.location.href = '/discount/' + code + '?redirect=' + encodeURIComponent(url);
+  });
+
+  removeBtn.addEventListener('click', () => {
+    removeBtn.disabled = true;
+    sessionStorage.removeItem('ne_discount_code');
+    const url = window.location.pathname + window.location.search;
+    window.location.href = '/discount/?redirect=' + encodeURIComponent(url);
+  });
+
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') applyBtn.click();
+  });
+
+  function checkDiscount() {
+    fetch('/cart.js')
+      .then(r => r.json())
+      .then(cart => {
+        const d = cart.cart_level_discount_applications?.[0];
+        if (d) {
+          form.style.display = 'none';
+          active.style.display = 'flex';
+          activeCodeEl.textContent = d.title;
+          activeCodeEl.style.display = 'inline';
+          codeText.textContent = d.title;
+          if (cart.total_discount > 0) {
+            savings.textContent = '-' + (cart.total_discount / 100).toFixed(2) + '€';
+          }
+        } else {
+          form.style.display = 'flex';
+          active.style.display = 'none';
+          activeCodeEl.style.display = 'none';
+          input.value = '';
+        }
+      })
+      .catch(() => {});
+  }
+
+  function showMsg(text, type) {
+    msg.textContent = text;
+    msg.className = 'qcd-msg ' + type;
+    msg.style.display = 'block';
+  }
+
+  setTimeout(checkDiscount, 300);
+  document.addEventListener('cart:updated', checkDiscount);
+})();
+</script>
+{% endif %}

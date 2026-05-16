@@ -1,0 +1,19 @@
+{
+  "name": "quick-cart-discount-app",
+  "version": "1.0.0",
+  "description": "Simple Shopify app for quick cart discount input",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "shopify app dev",
+    "deploy": "shopify app deploy",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "musrahman"
+}
